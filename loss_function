@@ -1,0 +1,34 @@
+
+'''样本不平衡损失函数'''
+
+import tensorflow as tf
+
+def focal_loss_binary_v1(logits,labels,alpha=0.5,gamma=2.0,EPSILON=0.0001,*args, **kargs):
+
+    labels = tf.cast(tf.expand_dims(labels, -1), tf.int32)
+
+    predictions = tf.nn.softmax(logits)
+    batch_idxs = tf.range(0, tf.shape(labels)[0])
+    batch_idxs = tf.expand_dims(batch_idxs, 1)
+
+    idxs = tf.concat([batch_idxs, labels], 1)
+    y_true_pred = tf.gather_nd(predictions, idxs)
+
+    labels = tf.cast(tf.squeeze(labels, axis=-1), tf.float32)
+
+    postive_loss = labels * tf.log(y_true_pred + EPSILON) * tf.pow(1 - y_true_pred, gamma) * alpha
+    negative_loss = (1 - labels) * tf.log(y_true_pred + EPSILON) * tf.pow(1 - y_true_pred, gamma) * (1 - alpha)
+
+    losses = -postive_loss - negative_loss
+    return tf.reduce_mean(losses), predictions
+    
+def focal_loss_binary_v2(logits,labels,alpha=0.5,EPSILON=0.0001,*args, **kargs):
+    
+    predictions=tf.nn.softmax(logits)
+    labels=tf.cast(tf.one_hot(labels,2),tf.float32)
+    
+    coe=tf.constant([alpha,1-alpha],dtype=tf.float32)
+    y_coe=coe*labels
+    
+    loss=tf.reduce_mean(-y_coe*tf.log(predictions+EPSILON))
+    return loss
